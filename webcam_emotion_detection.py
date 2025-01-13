@@ -34,9 +34,9 @@ while True:
 
     annotated_frame = results[0].plot()
 
-    face_bbox = (100, 100, 300, 300)
-
-    face_image = annotated_frame[face_bbox[1]:face_bbox[3], face_bbox[0]:face_bbox[2]]
+    face_bbox = results[0].boxes.xywh[0]
+    face_image = annotated_frame[int(face_bbox[1]):int(face_bbox[1] + face_bbox[3]),
+                                 int(face_bbox[0]):int(face_bbox[0] + face_bbox[2])]
 
     emotion = predict_emotion_from_frame(face_image)
 
