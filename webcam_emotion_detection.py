@@ -1,44 +1,51 @@
+import tensorflow as tf
 import cv2
-from ultralytics import YOLO
 import numpy as np
+from ultralytics import YOLO
 
-# Function for emotion prediction using a pre-trained model
-def predict_emotion_from_model(face_image):
-    # Simulated emotion prediction
-    # Replace this with a real emotion detection model
-    emotions = ['Happy', 'Sad', 'Angry', 'Surprised', 'Neutral']
-    return emotions[np.random.randint(0, len(emotions))]  # Replace with actual prediction logic
+emotion_model = tf.keras.Sequential([
+    tf.keras.layers.Input(shape=(224, 224, 3)),
+    tf.keras.layers.Rescaling(1./127.5, offset=-1),
+    tf.keras.layers.Conv2D(32, 3, activation='relu'),
+    tf.keras.layers.MaxPooling2D(),
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(64, activation='relu'),
+    tf.keras.layers.Dense(5, activation='softmax')
+])
 
-# Load YOLO model
 model = YOLO('yolov8n.pt')
 
-# Open webcam
 cap = cv2.VideoCapture(0)
+
+def predict_emotion_from_frame(frame):
+    resized_frame = cv2.resize(frame, (224, 224))
+    normalized_frame = resized_frame / 255.0
+    predictions = emotion_model.predict(np.expand_dims(normalized_frame, axis=0))
+    emotion = np.argmax(predictions)
+    emotions = ['Happy', 'Sad', 'Angry', 'Surprised', 'Neutral']
+    return emotions[emotion]
 
 while True:
     ret, frame = cap.read()
     if not ret:
         break
 
-    # Perform object detection
     results = model(frame)
 
-    # Annotate the frame with detection results
     annotated_frame = results[0].plot()
 
-    # Simulate face detection (replace with actual face detection logic)
-    face_image = annotated_frame[100:300, 100:300]  # Example bounding box for face
-    emotion = predict_emotion_from_model(face_image)
+    face_bbox = (100, 100, 300, 300)
 
-    # Annotate the frame with emotion
+    face_image = annotated_frame[face_bbox[1]:face_bbox[3], face_bbox[0]:face_bbox[2]]
+
+    emotion = predict_emotion_from_frame(face_image)
+
     cv2.putText(annotated_frame, emotion, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
-    # Display the annotated frame
-    cv2.imshow('Webcam with Emotion Detection', annotated_frame)
+    cv2.imshow('Webcam with Emotion and Object Detection', annotated_frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# Release the webcam and close windows
 cap.release()
 cv2.destroyAllWindows()
